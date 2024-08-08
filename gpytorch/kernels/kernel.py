@@ -306,7 +306,7 @@ class Kernel(Module):
 
     def local_load_samples(self, samples_dict: Dict[str, Tensor], memo: set, prefix: str):
         num_samples = next(iter(samples_dict.values())).size(0)
-        self.batch_shape = torch.Size([num_samples]) + self.batch_shape
+        self.batch_shape = torch.Size([num_samples])
         super().local_load_samples(samples_dict, memo, prefix)
 
     def covar_dist(
