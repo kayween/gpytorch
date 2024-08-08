@@ -93,10 +93,6 @@ class ExactGP(GP):
         """
         Replace the model's learned hyperparameters with samples from a posterior distribution.
         """
-        # Pyro always puts the samples in the first batch dimension
-        num_samples = next(iter(samples_dict.values())).size(0)
-        self.train_inputs = tuple(tri.unsqueeze(0).expand(num_samples, *tri.shape) for tri in self.train_inputs)
-        self.train_targets = self.train_targets.unsqueeze(0).expand(num_samples, *self.train_targets.shape)
         super().local_load_samples(samples_dict, memo, prefix)
 
     def set_train_data(self, inputs=None, targets=None, strict=True):
