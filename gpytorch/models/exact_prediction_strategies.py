@@ -262,7 +262,9 @@ class DefaultPredictionStrategy(object):
         train_labels_offset = (self.train_labels - train_mean).unsqueeze(-1)
 
         if nan_policy == "ignore":
-            mean_cache = train_train_covar.evaluate_kernel().solve(train_labels_offset).squeeze(-1)
+            train_train_covar = train_train_covar.to_dense()
+            chol = torch.linalg.cholesky(train_train_covar)
+            mean_cache = torch.cholesky_solve(train_labels_offset, chol).squeeze(-1)
         elif nan_policy == "mask":
             # Mask all rows and columns in the kernel matrix corresponding to the missing observations.
             observed = settings.observation_nan_policy._get_observed(
