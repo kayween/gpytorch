@@ -18,6 +18,8 @@ from linear_operator.utils.cholesky import psd_safe_cholesky
 from linear_operator.utils.errors import NotPSDError
 from torch import Tensor
 
+import gpytorch.settings as settings
+
 from gpytorch.variational._variational_strategy import _VariationalStrategy
 from gpytorch.variational.cholesky_variational_distribution import CholeskyVariationalDistribution
 
@@ -200,7 +202,11 @@ class VariationalStrategy(_VariationalStrategy):
         # Compute interpolation terms
         # K_ZZ^{-1/2} K_ZX
         # K_ZZ^{-1/2} \mu_Z
-        L = self._cholesky_factor(induc_induc_covar)
+        if settings.use_torch_tensors.on():
+            L = torch.linalg.cholesky(induc_induc_covar.to_dense().type(_linalg_dtype_cholesky.value()))
+        else:
+            L = self._cholesky_factor(induc_induc_covar)
+
         if L.shape != induc_induc_covar.shape:
             # Aggressive caching can cause nasty shape incompatibilies when evaluating with different batch shapes
             # TODO: Use a hook fo this
@@ -209,7 +215,13 @@ class VariationalStrategy(_VariationalStrategy):
             except CachingError:
                 pass
             L = self._cholesky_factor(induc_induc_covar)
-        interp_term = L.solve(induc_data_covar.type(_linalg_dtype_cholesky.value())).to(full_inputs.dtype)
+
+        if settings.use_torch_tensors.on():
+            interp_term = torch.linalg.solve_triangular(
+                L, induc_data_covar.type(_linalg_dtype_cholesky.value()), upper=False
+            ).to(full_inputs.dtype)
+        else:
+            interp_term = L.solve(induc_data_covar.type(_linalg_dtype_cholesky.value())).to(full_inputs.dtype)
 
         # Compute the mean of q(f)
         # k_XZ K_ZZ^{-1/2} (m - K_ZZ^{-1/2} \mu_Z) + \mu_X
