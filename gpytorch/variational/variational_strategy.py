@@ -227,9 +227,13 @@ class VariationalStrategy(_VariationalStrategy):
                 + interp_term.transpose(-1, -2) @ middle_term.to_dense() @ interp_term
             )
         else:
+            # NOTE: Why `middle_term.to_dense()`? In typical settings, `middle_term = C @ C' - I` where `C` is the
+            # Cholesky factor of the variational inducing covariance matrix. Note that two matmuls would be called in
+            # `CholLinearOperator.matmul` --- one for `C'` and one for `C`. Calling `to_dense()` saves a matmul, which
+            # speeds up computation especially if `interp_term` is a wide matrix.
             predictive_covar = SumLinearOperator(
                 data_data_covar.add_jitter(self.jitter_val),
-                MatmulLinearOperator(interp_term.transpose(-1, -2), middle_term @ interp_term),
+                MatmulLinearOperator(interp_term.transpose(-1, -2), middle_term.to_dense() @ interp_term),
             )
 
         # Return the distribution
