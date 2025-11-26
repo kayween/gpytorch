@@ -10,7 +10,7 @@ from linear_operator.operators import CholLinearOperator, LinearOperator, Matmul
 from linear_operator.utils.cholesky import psd_safe_cholesky
 from torch import Tensor
 
-from gpytorch.settings import _linalg_dtype_cholesky, trace_mode
+from gpytorch.settings import trace_mode
 
 from ..distributions import MultivariateNormal
 from .variational_strategy import VariationalStrategy
@@ -44,7 +44,7 @@ class TensorizedVariationalStrategy(VariationalStrategy):
         # Compute interpolation terms
         # K_ZZ^{-1/2} K_ZX
         # K_ZZ^{-1/2} \mu_Z
-        L = psd_safe_cholesky(to_dense(induc_induc_covar).type(_linalg_dtype_cholesky.value()))
+        L = psd_safe_cholesky(to_dense(induc_induc_covar))
         if L.shape != induc_induc_covar.shape:
             raise NotImplementedError()
 
