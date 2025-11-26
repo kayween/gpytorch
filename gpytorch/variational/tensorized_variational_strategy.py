@@ -6,7 +6,7 @@ import torch
 
 from linear_operator import to_dense
 
-from linear_operator.operators import LinearOperator, MatmulLinearOperator, SumLinearOperator
+from linear_operator.operators import CholLinearOperator, LinearOperator, MatmulLinearOperator, SumLinearOperator
 from linear_operator.utils.cholesky import psd_safe_cholesky
 from torch import Tensor
 
@@ -49,8 +49,9 @@ class TensorizedVariationalStrategy(VariationalStrategy):
             raise NotImplementedError()
 
         interp_term = torch.linalg.solve_triangular(
-            L,
-            induc_data_covar.type(_linalg_dtype_cholesky.value()),
+            L.to(full_inputs.dtype),
+            # induc_data_covar.type(_linalg_dtype_cholesky.value()),
+            induc_data_covar,
             upper=False,
         ).to(full_inputs.dtype)
 
@@ -60,16 +61,16 @@ class TensorizedVariationalStrategy(VariationalStrategy):
 
         # Compute the covariance of q(f)
         # K_XX + k_XZ K_ZZ^{-1/2} (S - I) K_ZZ^{-1/2} k_ZX
-        middle_term = self.prior_distribution.lazy_covariance_matrix.mul(-1)
-        if variational_inducing_covar is not None:
-            middle_term = to_dense(variational_inducing_covar) + to_dense(middle_term)
+        assert isinstance(variational_inducing_covar, CholLinearOperator)
+        root_times_interp = variational_inducing_covar.root.transpose(-1, -2) @ interp_term
 
         if trace_mode.on():
             raise NotImplementedError
         else:
             predictive_covar = SumLinearOperator(
                 data_data_covar.add_jitter(self.jitter_val),
-                MatmulLinearOperator(interp_term.transpose(-1, -2), middle_term @ interp_term),
+                MatmulLinearOperator(interp_term.transpose(-1, -2), interp_term).mul(-1),
+                MatmulLinearOperator(root_times_interp.transpose(-1, -2), root_times_interp),
             )
 
         # Return the distribution
