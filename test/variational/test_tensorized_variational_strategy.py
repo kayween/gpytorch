@@ -7,7 +7,10 @@ import torch
 import gpytorch
 from gpytorch.models.approximate_gp import ApproximateGP
 from gpytorch.variational.cholesky_variational_distribution import CholeskyVariationalDistribution
-from gpytorch.variational.tensorized_variational_strategy import TensorizedVariationalStrategy
+from gpytorch.variational.tensorized_variational_strategy import (
+    TensorizedVariationalStrategy,
+    VariationalStrategyAlgebra,
+)
 from gpytorch.variational.variational_strategy import VariationalStrategy
 
 
@@ -25,6 +28,40 @@ class _GPModel(ApproximateGP):
         mean_x = self.mean_module(x)
         covar_x = self.covar_module(x)
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
+
+
+class TestVariationalStrategyAlgebra(unittest.TestCase):
+    def test_forward_backward(self):
+        n = 3
+        m = 2
+
+        chol = torch.rand(m, m).tril_()
+        covar_data_induc = torch.rand(n, m)
+
+        middle = torch.rand(m, m)
+        middle = middle + middle.mT
+
+        induc_mean = torch.randn(m)
+
+        chol.requires_grad_(True)
+        covar_data_induc.requires_grad_(True)
+        middle.requires_grad_(True)
+        induc_mean.requires_grad_(True)
+
+        predictive_mean, predictive_covar_diag = VariationalStrategyAlgebra.apply(
+            chol,
+            covar_data_induc,
+            middle,
+            induc_mean,
+        )
+
+        loss = predictive_mean.sum() + predictive_covar_diag.sum()
+        loss.backward()
+
+        self.assertIsNotNone(chol.grad)
+        self.assertIsNotNone(covar_data_induc.grad)
+        self.assertIsNotNone(middle.grad)
+        self.assertIsNotNone(induc_mean.grad)
 
 
 class TestTensorizedVariationalStrategy(unittest.TestCase):
