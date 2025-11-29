@@ -53,7 +53,7 @@ class VariationalStrategyAlgebra(torch.autograd.Function):
         d_induc_mean = d_induc_mean.squeeze(-1)
 
         # This term `(S - I) @ K_ZZ^{-1/2}` will be used multiple times
-        middle_times_inv_chol = torch.linalg.solve_triangular(chol, middle, upper=True, left=False)
+        middle_times_inv_chol = torch.linalg.solve_triangular(chol, middle, upper=False, left=False)
 
         d_middle = interp_term @ (d_predictive_variance.unsqueeze(-1) * interp_term.transpose(-1, -2))
 
@@ -61,8 +61,9 @@ class VariationalStrategyAlgebra(torch.autograd.Function):
         d_covar_data_induc = 2.0 * d_predictive_variance.unsqueeze(-1) * interp_term.mT @ middle_times_inv_chol.mT
 
         # And then add the derivative of `K_XZ` received from the predictive mean
-        inv_chol_times_induc_mean = torch.linalg.solve_triangular(chol, induc_mean.unsqueeze(-1), upper=False)
-        d_chol = d_covar_data_induc + d_predictive_mean.unsqueeze(-1) @ inv_chol_times_induc_mean.mT
+        inv_chol_t_times_induc_mean = torch.linalg.solve_triangular(chol.mT, induc_mean.unsqueeze(-1), upper=True)
+        d_covar_data_induc = d_covar_data_induc + d_predictive_mean.unsqueeze(-1) @ inv_chol_t_times_induc_mean.mT
+
         # This is the hardest one.
         d_chol = -2.0 * middle_times_inv_chol.mT @ interp_term @ (d_predictive_variance.unsqueeze(-1) * interp_term.mT)
         d_chol = d_chol.tril()
@@ -101,8 +102,8 @@ class TensorizedVariationalStrategy(VariationalStrategy):
 
         predictive_mean, predictive_covar_diag = VariationalStrategyAlgebra.apply(
             L,
-            induc_data_covar,
-            to_dense(variational_inducing_covar) - to_dense(self.variational_distribution.covariance_matrix),
+            induc_data_covar.mT,
+            to_dense(variational_inducing_covar) - self.prior_distribution.lazy_covariance_matrix.to_dense(),
             inducing_values,
         )
 
