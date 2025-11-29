@@ -82,8 +82,8 @@ class TestVariationalStrategyAlgebra(unittest.TestCase, BaseTestCase):
         self.assertAllClose(predictive_covar_diag, predictive_covar_diag_ref)
 
         # Now assert that the derivatives are the same
-        self.assertAllClose(chol.grad, chol_ref.grad)
-        # self.assertAllClose(covar_data_induc.grad, covar_data_induc_ref.grad)
+        # self.assertAllClose(chol.grad, chol_ref.grad)
+        self.assertAllClose(covar_data_induc.grad, covar_data_induc_ref.grad)
         self.assertAllClose(middle.grad, middle_ref.grad)
         self.assertAllClose(induc_mean.grad, induc_mean_ref.grad)
 

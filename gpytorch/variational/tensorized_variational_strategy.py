@@ -58,7 +58,7 @@ class VariationalStrategyAlgebra(torch.autograd.Function):
         d_middle = interp_term @ (d_predictive_variance.unsqueeze(-1) * interp_term.transpose(-1, -2))
 
         # The derivative of `K_XZ` received from the predictive covariance
-        d_covar_data_induc = 2.0 * d_predictive_variance.unsqueeze(-1) * interp_term.mT @ middle_times_inv_chol.mT
+        d_covar_data_induc = 2.0 * d_predictive_variance.unsqueeze(-1) * interp_term.mT @ middle_times_inv_chol
 
         # And then add the derivative of `K_XZ` received from the predictive mean
         inv_chol_t_times_induc_mean = torch.linalg.solve_triangular(chol.mT, induc_mean.unsqueeze(-1), upper=True)
