@@ -66,11 +66,11 @@ class VariationalStrategyAlgebra(torch.autograd.Function):
 
         # This is the hardest one.
         d_chol_variance_term = (
-            -2.0 * middle_times_inv_chol.mT @ interp_term @ (d_predictive_variance.unsqueeze(-1) * interp_term.mT)
+            -2.0 * middle_times_inv_chol.mT @ (interp_term @ (d_predictive_variance.unsqueeze(-1) * interp_term.mT))
         )
 
         # Then add the derivative of `chol` received from the predictive mean
-        d_chol_mean_term = -interp_term @ (d_predictive_mean.unsqueeze(-1) @ inv_chol_t_times_induc_mean.mT)
+        d_chol_mean_term = -(interp_term @ d_predictive_mean.unsqueeze(-1)) @ inv_chol_t_times_induc_mean.mT
         d_chol_mean_term = d_chol_mean_term.mT
 
         # Note that `chol` is lower triangular. So we need to zero out the upper triangular part.
