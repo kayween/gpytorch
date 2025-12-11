@@ -13,6 +13,7 @@ from gpytorch.variational.tensorized_variational_strategy import (
     VariationalStrategyAlgebra,
 )
 from gpytorch.variational.variational_strategy import VariationalStrategy
+from gpytorch.variational.variational_strategy_single_precision import FP32VariationalStrategy
 
 
 class _GPModel(ApproximateGP):
@@ -88,7 +89,7 @@ class TestVariationalStrategyAlgebra(unittest.TestCase, BaseTestCase):
         self.assertAllClose(induc_mean.grad, induc_mean_ref.grad)
 
 
-class TestTensorizedVariationalStrategy(unittest.TestCase, BaseTestCase):
+class CustomVariationalStrategyMixin:
     def test_train_mode(self):
         torch.set_default_dtype(torch.float32)
 
@@ -98,7 +99,7 @@ class TestTensorizedVariationalStrategy(unittest.TestCase, BaseTestCase):
         torch.manual_seed(42)
         model1 = _GPModel(
             inducing_points=inducing_points.clone(),
-            variational_strategy_class=TensorizedVariationalStrategy,
+            variational_strategy_class=self.variational_strategy_class,
         )
         model1.train()
         output1 = model1(train_x)
@@ -145,6 +146,14 @@ class TestTensorizedVariationalStrategy(unittest.TestCase, BaseTestCase):
             atol=1e-4,
             rtol=1e-4,
         )
+
+
+class TestTensorizedVariationalStrategy(unittest.TestCase, BaseTestCase, CustomVariationalStrategyMixin):
+    variational_strategy_class = TensorizedVariationalStrategy
+
+
+class TestFP32VariationalStrategy(unittest.TestCase, BaseTestCase, CustomVariationalStrategyMixin):
+    variational_strategy_class = FP32VariationalStrategy
 
 
 if __name__ == "__main__":
