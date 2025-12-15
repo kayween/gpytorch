@@ -17,17 +17,34 @@ from gpytorch.variational.variational_strategy_group_middle_term import (
     VariationalStrategyGroupMiddleTermDoublePrecision,
     VariationalStrategyGroupMiddleTermSinglePrecision,
 )
+from gpytorch.variational.variational_strategy_ldl_decomposition import VariationalStrategyLDLDecomposition
 from gpytorch.variational.variational_strategy_single_precision import VariationalStrategySinglePrecision
 from gpytorch.variational.variational_strategy_to_dense import VariationalStrategyToDense
 
 
 class _GPModel(ApproximateGP):
-    def __init__(self, inducing_points, variational_strategy_class: type[VariationalStrategy] = VariationalStrategy):
-        variational_distribution = CholeskyVariationalDistribution(inducing_points.size(0))
+    def __init__(
+        self,
+        inducing_points,
+        variational_strategy_class: type[VariationalStrategy] = VariationalStrategy,
+        random_initialization: bool = False,
+    ):
+        variational_distribution = CholeskyVariationalDistribution(inducing_points.size(-2))
+        if random_initialization:
+            mean = torch.randn_like(variational_distribution.variational_mean) / inducing_points.size(-2)
+            chol = torch.randn_like(variational_distribution.chol_variational_covar) / inducing_points.size(-2)
+            covar = chol @ chol.mT + torch.eye(inducing_points.size(-2)).to(chol) * 1e-3
+
+            variational_distribution.initialize_variational_distribution(
+                gpytorch.distributions.MultivariateNormal(mean, covar)
+            )
+
         variational_strategy = variational_strategy_class(
             self, inducing_points, variational_distribution, learn_inducing_locations=True
         )
         super().__init__(variational_strategy)
+        self.variational_strategy.variational_params_initialized.fill_(1)
+
         self.mean_module = gpytorch.means.ConstantMean()
         self.covar_module = gpytorch.kernels.RBFKernel()
 
@@ -95,18 +112,22 @@ class TestVariationalStrategyAlgebra(unittest.TestCase, BaseTestCase):
 
 
 class CustomVariationalStrategyMixin:
+    random_initialization = False
+    device = "cpu"
+
     def test_train_mode(self):
         torch.set_default_dtype(torch.float32)
 
-        inducing_points = torch.rand(2, 2)
-        train_x = torch.rand(5, 2)
+        inducing_points = torch.rand(2, 2).to(self.device)
+        train_x = torch.rand(5, 2).to(self.device)
 
         torch.manual_seed(42)
         model1 = _GPModel(
             inducing_points=inducing_points.clone(),
             variational_strategy_class=self.variational_strategy_class,
+            random_initialization=self.random_initialization,
         )
-        model1.train()
+        model1.train().to(self.device)
         output1 = model1(train_x)
 
         loss1 = output1.mean.mean() + output1.covariance_matrix.diag().mean()
@@ -116,8 +137,9 @@ class CustomVariationalStrategyMixin:
         model2 = _GPModel(
             inducing_points=inducing_points.clone(),
             variational_strategy_class=VariationalStrategy,
+            random_initialization=self.random_initialization,
         )
-        model2.train()
+        model2.train().to(self.device)
         output2 = model2(train_x)
 
         loss2 = output2.mean.mean() + output2.covariance_matrix.diag().mean()
@@ -154,27 +176,44 @@ class CustomVariationalStrategyMixin:
 
 
 class TestVariationalStrategyToDense(unittest.TestCase, BaseTestCase, CustomVariationalStrategyMixin):
+    random_initialization = True
     variational_strategy_class = VariationalStrategyToDense
 
 
 class TestVariationalStrategyCustomBackward(unittest.TestCase, BaseTestCase, CustomVariationalStrategyMixin):
+    random_initialization = True
     variational_strategy_class = VariationalStrategyCustomBackward
 
 
 class TestVariationalStrategySinglePrecision(unittest.TestCase, BaseTestCase, CustomVariationalStrategyMixin):
+    random_initialization = True
     variational_strategy_class = VariationalStrategySinglePrecision
 
 
 class TestVariationalStrategyGroupMiddleTermSinglePrecision(
     unittest.TestCase, BaseTestCase, CustomVariationalStrategyMixin
 ):
+    random_initialization = True
     variational_strategy_class = VariationalStrategyGroupMiddleTermSinglePrecision
 
 
 class TestVariationalStrategyGroupMiddleTermDoublePrecision(
     unittest.TestCase, BaseTestCase, CustomVariationalStrategyMixin
 ):
+    random_initialization = True
     variational_strategy_class = VariationalStrategyGroupMiddleTermDoublePrecision
+
+
+class TestVariationalStrategyLDLDecomposition(unittest.TestCase, BaseTestCase, CustomVariationalStrategyMixin):
+    random_initialization = False  # LU decomposition would fail due to singularity
+    device = "cuda:0"  # LU decomposition with no pivoting is only available on GPUs
+    variational_strategy_class = VariationalStrategyLDLDecomposition
+
+
+class TestVariationalStrategyLDLDecompositionV2(unittest.TestCase, BaseTestCase, CustomVariationalStrategyMixin):
+    random_initialization = True
+    device = "cuda:0"  # LU decomposition with no pivoting is only available on GPUs
+    variational_strategy_class = VariationalStrategyLDLDecomposition
 
 
 if __name__ == "__main__":
