@@ -13,6 +13,10 @@ from gpytorch.variational.variational_strategy_custom_backward import (
     VariationalStrategyAlgebra,
     VariationalStrategyCustomBackward,
 )
+from gpytorch.variational.variational_strategy_group_middle_term import (
+    VariationalStrategyGroupMiddleTermDoublePrecision,
+    VariationalStrategyGroupMiddleTermSinglePrecision,
+)
 from gpytorch.variational.variational_strategy_single_precision import VariationalStrategySinglePrecision
 
 
@@ -154,6 +158,18 @@ class TestVariationalStrategyCustomBackward(unittest.TestCase, BaseTestCase, Cus
 
 class TestVariationalStrategySinglePrecision(unittest.TestCase, BaseTestCase, CustomVariationalStrategyMixin):
     variational_strategy_class = VariationalStrategySinglePrecision
+
+
+class TestVariationalStrategyGroupMiddleTermSinglePrecision(
+    unittest.TestCase, BaseTestCase, CustomVariationalStrategyMixin
+):
+    variational_strategy_class = VariationalStrategyGroupMiddleTermSinglePrecision
+
+
+class TestVariationalStrategyGroupMiddleTermDoublePrecision(
+    unittest.TestCase, BaseTestCase, CustomVariationalStrategyMixin
+):
+    variational_strategy_class = VariationalStrategyGroupMiddleTermDoublePrecision
 
 
 if __name__ == "__main__":
