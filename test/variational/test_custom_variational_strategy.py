@@ -18,6 +18,7 @@ from gpytorch.variational.variational_strategy_group_middle_term import (
     VariationalStrategyGroupMiddleTermSinglePrecision,
 )
 from gpytorch.variational.variational_strategy_single_precision import VariationalStrategySinglePrecision
+from gpytorch.variational.variational_strategy_to_dense import VariationalStrategyToDense
 
 
 class _GPModel(ApproximateGP):
@@ -150,6 +151,10 @@ class CustomVariationalStrategyMixin:
             atol=1e-4,
             rtol=1e-4,
         )
+
+
+class TestVariationalStrategyToDense(unittest.TestCase, BaseTestCase, CustomVariationalStrategyMixin):
+    variational_strategy_class = VariationalStrategyToDense
 
 
 class TestVariationalStrategyCustomBackward(unittest.TestCase, BaseTestCase, CustomVariationalStrategyMixin):
