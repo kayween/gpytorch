@@ -16,7 +16,7 @@ from ..distributions import MultivariateNormal
 from .variational_strategy import VariationalStrategy
 
 
-class FP32VariationalStrategy(VariationalStrategy):
+class VariationalStrategySinglePrecision(VariationalStrategy):
     r"""
     An ultra-light-weight variational strategy that perform linear algebra operations on torch tensors.
 

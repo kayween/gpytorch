@@ -80,7 +80,7 @@ class VariationalStrategyAlgebra(torch.autograd.Function):
         return d_chol, d_covar_data_induc, d_middle, d_induc_mean
 
 
-class TensorizedVariationalStrategy(VariationalStrategy):
+class VariationalStrategyCustomBackward(VariationalStrategy):
     r"""
     An ultra-light-weight variational strategy that perform linear algebra operations on torch tensors.
     """

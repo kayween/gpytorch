@@ -8,12 +8,12 @@ import gpytorch
 from gpytorch.models.approximate_gp import ApproximateGP
 from gpytorch.test.base_test_case import BaseTestCase
 from gpytorch.variational.cholesky_variational_distribution import CholeskyVariationalDistribution
-from gpytorch.variational.tensorized_variational_strategy import (
-    TensorizedVariationalStrategy,
-    VariationalStrategyAlgebra,
-)
 from gpytorch.variational.variational_strategy import VariationalStrategy
-from gpytorch.variational.variational_strategy_single_precision import FP32VariationalStrategy
+from gpytorch.variational.variational_strategy_custom_backward import (
+    VariationalStrategyAlgebra,
+    VariationalStrategyCustomBackward,
+)
+from gpytorch.variational.variational_strategy_single_precision import VariationalStrategySinglePrecision
 
 
 class _GPModel(ApproximateGP):
@@ -148,12 +148,12 @@ class CustomVariationalStrategyMixin:
         )
 
 
-class TestTensorizedVariationalStrategy(unittest.TestCase, BaseTestCase, CustomVariationalStrategyMixin):
-    variational_strategy_class = TensorizedVariationalStrategy
+class TestVariationalStrategyCustomBackward(unittest.TestCase, BaseTestCase, CustomVariationalStrategyMixin):
+    variational_strategy_class = VariationalStrategyCustomBackward
 
 
-class TestFP32VariationalStrategy(unittest.TestCase, BaseTestCase, CustomVariationalStrategyMixin):
-    variational_strategy_class = FP32VariationalStrategy
+class TestVariationalStrategySinglePrecision(unittest.TestCase, BaseTestCase, CustomVariationalStrategyMixin):
+    variational_strategy_class = VariationalStrategySinglePrecision
 
 
 if __name__ == "__main__":
